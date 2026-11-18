@@ -80,7 +80,8 @@ function curlTlsArgs(): string[] {
 }
 
 /**
- * POSTs to the Venice API host and yields the response body.
+ * Requests `path` on the Venice API host and yields the response body: a POST
+ * of `body`, or a GET without one.
  *
  * Through the system curl, because Cloudflare blocks Node's own HTTP client on
  * this host whatever the headers. It only lets curl through over HTTP/1.1, with
@@ -88,11 +89,11 @@ function curlTlsArgs(): string[] {
  * `accept: text/event-stream`. Headers go through a private file so the bearer
  * token never shows up in the process list.
  */
-async function* post(
+async function* curl(
   cookie: string,
   path: string,
   headers: Record<string, string>,
-  body: string,
+  body: string | undefined,
   signal?: AbortSignal,
 ): AsyncGenerator<Buffer> {
   const tls = curlTlsArgs();
@@ -120,8 +121,7 @@ async function* post(
         USER_AGENT,
         "-H",
         `@${headerFile}`,
-        "--data-binary",
-        "@-",
+        ...(body === undefined ? [] : ["--data-binary", "@-"]),
         BASE_URL + path,
       ],
       { signal },
@@ -158,16 +158,26 @@ const apiHeaders = async (cookie: string, signal?: AbortSignal) => ({
   "x-venice-request-timestamp-ms": String(Date.now()),
 });
 
+async function json(body: AsyncIterable<Buffer>): Promise<any> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of body) chunks.push(chunk);
+  return JSON.parse(Buffer.concat(chunks).toString());
+}
+
 /** The inference route wants a client attestation token next to the session JWT. */
 const attestation = cached(async (cookie, signal) => {
   const headers = await apiHeaders(cookie, signal);
   const body = JSON.stringify({ env: {} });
-  const mint = post(cookie, "/api/app/user/client_attestation/mint", headers, body, signal);
-  const chunks: Buffer[] = [];
-  for await (const chunk of mint) chunks.push(chunk);
-  const { token } = JSON.parse(Buffer.concat(chunks).toString());
+  const mint = curl(cookie, "/api/app/user/client_attestation/mint", headers, body, signal);
+  const { token } = await json(mint);
   return { value: token, expires: Date.now() + 5 * 60_000 };
 });
+
+/** The web app's model catalogue, as served: every model of every kind, free or not. */
+export async function catalogue(cookie: string, signal?: AbortSignal): Promise<unknown> {
+  const headers = await apiHeaders(cookie, signal);
+  return json(curl(cookie, "/api/app/models", headers, undefined, signal));
+}
 
 /** Runs one request on the web inference endpoint and yields its parsed SSE events. */
 export async function* chat(
@@ -184,7 +194,7 @@ export async function* chat(
   const body = JSON.stringify(request, (_key, value) =>
     typeof value === "string" ? value.replaceAll("\0", "") : value,
   );
-  yield* sseEvents(post(cookie, "/api/inference/chat/agents/ad-hoc", headers, body, signal));
+  yield* sseEvents(curl(cookie, "/api/inference/chat/agents/ad-hoc", headers, body, signal));
 }
 
 export type Chat = typeof chat;
