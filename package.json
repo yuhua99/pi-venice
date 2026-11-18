@@ -1,0 +1,39 @@
+{
+  "name": "@yuhua99/pi-venice",
+  "version": "0.1.0",
+  "description": "Venice web-session provider for Pi coding agent.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "node --test",
+    "fmt": "oxfmt",
+    "lint": "oxlint",
+    "typecheck": "oxlint --type-aware --type-check"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/pi-coding-agent": "1.5.2",
+    "@types/node": "^25.2.3",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.69.0",
+    "oxlint-tsgolint": "^7.0.2001"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-ai": {
+      "optional": true
+    }
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
