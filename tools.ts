@@ -16,6 +16,7 @@ const MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
 };
 
 // some models put the @ of a file mention in front of a path argument
@@ -104,7 +105,7 @@ export function registerImageTools(pi: ExtensionAPI) {
       images: Type.Array(Type.String(), {
         minItems: 1,
         maxItems: 3,
-        description: "Paths of the PNG or JPEG images to edit or combine",
+        description: "Paths of the PNG, JPEG or WebP images to edit or combine",
       }),
       model: model(EDIT_MODEL),
       aspect_ratio: Type.Optional(
@@ -119,7 +120,7 @@ export function registerImageTools(pi: ExtensionAPI) {
       const images = await Promise.all(
         params.images.map(async (path) => {
           const mimeType = MIME_TYPES[extname(path).toLowerCase()];
-          if (!mimeType) throw new Error(`${path} is not a .png, .jpg or .jpeg file`);
+          if (!mimeType) throw new Error(`${path} is not a .png, .jpg, .jpeg or .webp file`);
           return { mimeType, data: await readFile(absolute(ctx, path)) };
         }),
       );
