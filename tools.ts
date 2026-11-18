@@ -11,7 +11,7 @@ import { type ImageRequest, makeImage } from "./images.ts";
 import * as venice from "./venice.ts";
 
 const GENERATION_MODEL = "z-image-turbo";
-const EDIT_MODEL = "firered-image-edit";
+const EDIT_MODEL = "qwen-edit-uncensored";
 const MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
