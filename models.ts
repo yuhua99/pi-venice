@@ -28,3 +28,15 @@ export function freeModels(catalogue: any): ProviderModelConfig[] {
       maxTokens: model.maxResponseTokens,
     }));
 }
+
+/**
+ * The ids of the image models Venice's agent offers
+ * (`GET /api/v2/agents/configuration_options`) and flags `usesCredits: false`.
+ * Not read from the web catalogue, which also lists free image models the
+ * agent cannot run and quietly replaces with another.
+ */
+export function freeImageModels(options: any, kind: "generation" | "edit"): string[] {
+  const models: unknown = options?.imageModelOptions?.[kind];
+  if (!Array.isArray(models)) throw new Error(`Venice lists no image ${kind} models`);
+  return models.filter((model) => model.usesCredits === false).map((model) => model.id);
+}

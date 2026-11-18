@@ -45,7 +45,7 @@ const textOf = (content: string | Part[]): string =>
         .filter(Boolean)
         .join("\n");
 
-const message = (role: "user" | "assistant", text: string) => ({
+export const message = (role: "user" | "assistant", text: string) => ({
   id: randomUUID(),
   type: "message",
   status: "completed",

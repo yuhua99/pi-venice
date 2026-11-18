@@ -93,7 +93,7 @@ async function* curl(
   cookie: string,
   path: string,
   headers: Record<string, string>,
-  body: string | undefined,
+  body: string | Uint8Array | undefined,
   signal?: AbortSignal,
 ): AsyncGenerator<Buffer> {
   const tls = curlTlsArgs();
@@ -198,3 +198,53 @@ export async function* chat(
 }
 
 export type Chat = typeof chat;
+
+/** What Venice's own agent can be set up with, as served: its chat, image and video models, free or not. */
+export async function agentOptions(cookie: string, signal?: AbortSignal): Promise<unknown> {
+  const headers = await apiHeaders(cookie, signal);
+  return json(curl(cookie, "/api/v2/agents/configuration_options", headers, undefined, signal));
+}
+
+/** An image that travels inside a request, under the id its message refers to it by. */
+export interface Media {
+  id: string;
+  mimeType: string;
+  data: Uint8Array<ArrayBuffer>;
+}
+
+/**
+ * Runs one request on Venice's own agent, which makes pictures with its server
+ * tools, and yields its parsed SSE events. `paidImagesMode=block` keeps the
+ * agent off the image models that bill credits.
+ *
+ * With `media` the request goes out as the multipart form the web client
+ * sends: the JSON in `request` and each image in `media.<id>`. Venice reads
+ * the images straight from it, so none has to be uploaded first.
+ */
+export async function* agent(
+  cookie: string,
+  request: object,
+  media: Media[],
+  signal?: AbortSignal,
+): AsyncGenerator<any> {
+  const headers = {
+    ...(await apiHeaders(cookie, signal)),
+    "x-venice-client-attestation": await attestation(cookie, signal),
+  };
+  let body: string | Uint8Array = JSON.stringify(request);
+  if (media.length) {
+    const form = new FormData();
+    form.append("request", body);
+    for (const { id, mimeType, data } of media)
+      form.append(`media.${id}`, new Blob([data], { type: mimeType }), "image");
+    // curl takes the body from stdin, so the form is encoded here, by the encoder fetch() uses
+    const encoded = new Request(BASE_URL, { method: "POST", body: form });
+    headers["content-type"] = encoded.headers.get("content-type")!;
+    body = new Uint8Array(await encoded.arrayBuffer());
+  }
+  const path = "/api/inference/chat/agents/venice?paidImagesMode=block";
+  yield* sseEvents(curl(cookie, path, headers, body, signal));
+}
+
+export type Agent = typeof agent;
+export type AgentOptions = typeof agentOptions;

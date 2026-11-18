@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { freeModels } from "../models.ts";
+import { freeImageModels, freeModels } from "../models.ts";
 
 const entry = (id: string, fields: object = {}) => ({
   id,
@@ -62,4 +62,20 @@ test("freeModels rejects the catalogue when a free model has no token limits", (
   assert.throws(() => freeModels({ text: { models } }), /no token limits for broken/);
   const paid = entry("paid", { usesCredits: true, maxContextLength: "many" });
   assert.equal(freeModels({ text: { models: [paid, entry("fine")] } }).length, 1);
+});
+
+test("freeImageModels keeps the agent's image models of one kind that use no credits", () => {
+  const options = {
+    imageModelOptions: {
+      generation: [
+        { id: "free", usesCredits: false },
+        { id: "paid", usesCredits: true },
+        { id: "unknown" },
+      ],
+      edit: [{ id: "free-edit", usesCredits: false }],
+    },
+  };
+  assert.deepEqual(freeImageModels(options, "generation"), ["free"]);
+  assert.deepEqual(freeImageModels(options, "edit"), ["free-edit"]);
+  assert.throws(() => freeImageModels({}, "edit"), /lists no image edit models/);
 });

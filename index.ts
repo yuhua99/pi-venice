@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { freeModels } from "./models.ts";
 import { streamVenice } from "./stream.ts";
+import { registerImageTools } from "./tools.ts";
 import { BASE_URL, catalogue, chat, sessionToken } from "./venice.ts";
 
 const API = "venice-web";
@@ -47,4 +48,6 @@ export default function (pi: ExtensionAPI) {
       getApiKey: (credentials) => credentials.access,
     },
   });
+
+  registerImageTools(pi);
 }
